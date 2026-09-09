@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Écrire un poème</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-ecriture">
+
+  <div class="form-container">
+    <h1>Nouvelle inspiration</h1>
+
+    <!-- Configuration du token (à faire une seule fois) -->
+    <details id="zone-config">
+      <summary>⚙️ Configuration (premier accès)</summary>
+      <div class="champ">
+        <label for="token">Clé d'accès GitHub :</label>
+        <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxx">
+        <small>Elle est enregistrée sur cet appareil uniquement.</small>
+      </div>
+    </details>
+
+    <form id="form-poeme">
+      <div class="champ">
+        <label for="titre">Titre :</label>
+        <input type="text" id="titre" placeholder="Ex: Clair de lune" required>
+      </div>
+
+      <div class="champ">
+        <label for="date">Date :</label>
+        <input type="text" id="date" required>
+      </div>
+
+      <div class="champ">
+        <label for="texte">Le poème :</label>
+        <textarea id="texte" rows="12" placeholder="Écris tes vers ici..." required></textarea>
+      </div>
+
+      <button type="submit" id="btn-publier">Publier sur le recueil ✨</button>
+      <p id="statut"></p>
+    </form>
+  </div>
+
+  <script>
+    // Configuration : Remplace par ton pseudo et le nom exact de ton dépôt
+    const PROPRIETAIRE = "pauldevilez";
+    const DEPOT = "recueil-poemes";
+    const FICHIER = "poemes.json";
+
+    // Pré-remplir la date du jour en français
+    document.getElementById('date').value = new Date().toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    // Restaurer le token s'il est déjà sauvegardé
+    const tokenStocke = localStorage.getItem('cle_github');
+    if (tokenStocke) {
+      document.getElementById('token').value = tokenStocke;
+      document.getElementById('zone-config').removeAttribute('open');
+    } else {
+      document.getElementById('zone-config').setAttribute('open', '');
+    }
+
+    const form = document.getElementById('form-poeme');
+    const statut = document.getElementById('statut');
+    const bouton = document.getElementById('btn-publier');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const token = document.getElementById('token').value.trim();
+      if (!token) {
+        alert("Veuillez renseigner la clé d'accès dans la section 'Configuration'.");
+        return;
+      }
+      localStorage.setItem('cle_github', token);
+
+      bouton.disabled = true;
+      statut.innerText = "Publication en cours...";
+      statut.className = "info";
+
+      const nouveauPoeme = {
+        titre: document.getElementById('titre').value.trim(),
+        date: document.getElementById('date').value.trim(),
+        texte: document.getElementById('texte').value
+      };
+
+      try {
+        const urlApi = `https://api.github.com/repos/${pauldevilez}/${recueil-poemes}/contents/${FICHIER}`;
+        
+        // 1. Récupérer le contenu actuel du fichier et son "sha"
+        const resGet = await fetch(urlApi, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!resGet.ok) throw new Error("Impossible d'accéder au dépôt. Vérifie la clé d'accès.");
+        const donneesFichier = await resGet.json();
+        
+        // Décodage du contenu UTF-8
+        const contenuActuel = JSON.parse(decodeURIComponent(escape(atob(donneesFichier.content))));
+
+        // 2. Insérer le nouveau poème tout en haut de la liste
+        contenuActuel.unshift(nouveauPoeme);
+
+        // 3. Ré-encoder en Base64 et renvoyer à GitHub
+        const nouveauContenuEncode = btoa(unescape(encodeURIComponent(JSON.stringify(contenuActuel, null, 2))));
+
+        const resPut = await fetch(urlApi, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Ajout du poème : ${nouveauPoeme.titre}`,
+            content: nouveauContenuEncode,
+            sha: donneesFichier.sha
+          })
+        });
+
+        if (resPut.ok) {
+          statut.innerText = "Poème publié avec succès ! En ligne dans une minute.";
+          statut.className = "succes";
+          document.getElementById('titre').value = "";
+          document.getElementById('texte').value = "";
+        } else {
+          throw new Error("Erreur lors de la mise à jour sur GitHub.");
+        }
+      } catch (err) {
+        statut.innerText = "Erreur : " + err.message;
+        statut.className = "erreur";
+      } finally {
+        bouton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
