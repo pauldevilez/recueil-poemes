@@ -87,7 +87,7 @@
       };
 
       try {
-        const urlApi = `https://api.github.com/repos/${pauldevilez}/${recueil-poemes}/contents/${FICHIER}`;
+        const urlApi = `https://api.github.com/repos/${PROPRIETAIRE}/${DEPOT}/contents/${FICHIER}`;
         
         // 1. Récupérer le contenu actuel du fichier et son "sha"
         const resGet = await fetch(urlApi, {
