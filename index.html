@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Les Poèmes de [Son Prénom]</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Police élégante pour la poésie -->
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header>
+    <h1>Recueil Poétique</h1>
+    <p>Écrits par [Son Prénom]</p>
+  </header>
+
+  <main id="conteneur-poemes">
+    <p class="chargement">Chargement des poèmes...</p>
+  </main>
+
+  <script>
+    // Récupération automatique des poèmes
+    fetch('poemes.json')
+      .then(response => response.json())
+      .then(data => {
+        const conteneur = document.getElementById('conteneur-poemes');
+        conteneur.innerHTML = ''; // Vide le message de chargement
+
+        data.forEach(poeme => {
+          const article = document.createElement('article');
+          article.className = 'carte-poeme';
+
+          article.innerHTML = `
+            <h2>${poeme.titre}</h2>
+            <time>${poeme.date}</time>
+            <div class="strophes">${poeme.texte}</div>
+          `;
+
+          conteneur.appendChild(article);
+        });
+      })
+      .catch(erreur => {
+        console.error('Erreur:', erreur);
+        document.getElementById('conteneur-poemes').innerText = "Impossible de charger les textes pour le moment.";
+      });
+  </script>
+</body>
+</html>
